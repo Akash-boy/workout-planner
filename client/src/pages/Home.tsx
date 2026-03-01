@@ -2,11 +2,11 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppContext } from "@/lib/store";
-import { Activity, ArrowRight, Zap, Trophy, Timer } from "lucide-react";
+import { Activity, ArrowRight, Zap, Trophy, Timer, Flame } from "lucide-react";
 import heroBg from "@/assets/images/hero-bg.png";
 
 export default function Home() {
-  const { profile, weeklyPlan, completedWorkouts } = useAppContext();
+  const { profile, weeklyPlan, completedWorkouts, streak } = useAppContext();
 
   const hasProfile = profile !== null;
   const hasPlan = weeklyPlan.length > 0;
@@ -23,13 +23,27 @@ export default function Home() {
         }}
       >
         <div className="absolute inset-0 bg-background/40 backdrop-blur-[2px]"></div>
-        <div className="relative z-10 w-full max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 text-primary border border-primary/30 mb-4 text-sm font-medium">
-            <Zap size={16} /> AURA FITNESS OS
+        <div className="relative z-10 w-full max-w-4xl mx-auto flex justify-between items-end">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 text-primary border border-primary/30 mb-4 text-sm font-medium">
+              <Zap size={16} /> AURA FITNESS OS
+            </div>
+            <h1 className="text-4xl md:text-6xl font-black text-foreground uppercase tracking-tight">
+              Forge Your <span className="text-primary">Legacy</span>
+            </h1>
           </div>
-          <h1 className="text-4xl md:text-6xl font-black text-foreground uppercase tracking-tight">
-            Forge Your <span className="text-primary">Legacy</span>
-          </h1>
+
+          {/* Streak Counter */}
+          <div className="flex flex-col items-center mb-1">
+            <div className="relative">
+              <Flame size={48} className={streak > 0 ? "text-primary animate-pulse" : "text-muted-foreground opacity-50"} />
+              {streak > 0 && (
+                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full"></div>
+              )}
+            </div>
+            <span className="text-2xl font-black mt-1">{streak}</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Day Streak</span>
+          </div>
         </div>
       </div>
 

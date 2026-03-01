@@ -1,6 +1,7 @@
 import { useAppContext } from "@/lib/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Activity, Calendar, Clock, Database, TrendingUp } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 export default function Progress() {
   const { completedWorkouts } = useAppContext();
@@ -18,6 +19,26 @@ export default function Progress() {
   const formatDuration = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     return `${m} min`;
+  };
+
+  const getChartData = () => {
+    const last7Days = Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return {
+        date: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        fullDate: d.toDateString(),
+        count: 0
+      };
+    });
+
+    completedWorkouts.forEach(w => {
+      const workoutDate = new Date(w.date).toDateString();
+      const dayData = last7Days.find(d => d.fullDate === workoutDate);
+      if (dayData) dayData.count++;
+    });
+
+    return last7Days;
   };
 
   return (
@@ -39,6 +60,43 @@ export default function Progress() {
         </Card>
       ) : (
         <div className="space-y-6">
+          {/* Chart Section */}
+          <Card className="bg-secondary/10 border-border">
+            <CardContent className="p-6">
+              <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-6">Activity Last 7 Days</h3>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={getChartData()}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                    <XAxis 
+                      dataKey="date" 
+                      stroke="#888" 
+                      fontSize={12} 
+                      tickLine={false} 
+                      axisLine={false} 
+                    />
+                    <YAxis 
+                      stroke="#888" 
+                      fontSize={12} 
+                      tickLine={false} 
+                      axisLine={false} 
+                      allowDecimals={false}
+                    />
+                    <Tooltip 
+                      cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                      contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px' }}
+                    />
+                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                      {getChartData().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.count > 0 ? 'hsl(var(--primary))' : '#333'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Stats Overview */}
           <div className="grid grid-cols-2 gap-4">
             <Card className="bg-secondary/30 border-border">

@@ -1,16 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAppContext, Exercise, WorkoutPlan } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Timer, Play, Pause, CheckCircle, ArrowRight, X, AlertTriangle } from "lucide-react";
+import { Timer, Play, Pause, CheckCircle, ArrowRight, X, AlertTriangle, Volume2 } from "lucide-react";
 
 export default function Workout() {
   const { weeklyPlan, addCompletedWorkout } = useAppContext();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   const [activePlan, setActivePlan] = useState<WorkoutPlan | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -21,6 +22,30 @@ export default function Workout() {
   const [timerActive, setTimerActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
+
+  const playBeep = () => {
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioContextRef.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+    } catch (e) {
+      console.error("Audio error", e);
+    }
+  };
 
   // Load first available plan for demo purposes
   useEffect(() => {
@@ -36,7 +61,12 @@ export default function Workout() {
     let interval: NodeJS.Timeout;
     if (timerActive && timeLeft > 0) {
       interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            playBeep();
+          }
+          return prev - 1;
+        });
       }, 1000);
     } else if (timerActive && timeLeft === 0) {
       setTimerActive(false);
@@ -53,8 +83,8 @@ export default function Workout() {
     if (currentCompleted < maxSets) {
       setCompletedSets(prev => ({ ...prev, [exId]: currentCompleted + 1 }));
       
-      // Start rest timer
-      setTimeLeft(restTime);
+      // Start rest timer (clamped to 60 as per request for consistency, or use plan rest time)
+      setTimeLeft(60); 
       setTimerActive(true);
     }
   };
@@ -69,7 +99,7 @@ export default function Workout() {
       id: `wo-${Date.now()}`,
       date: new Date().toISOString(),
       planTitle: activePlan.title,
-      totalVolume: totalSets, // simplifying volume to total sets
+      totalVolume: totalSets,
       duration: durationSecs
     });
 
@@ -131,7 +161,10 @@ export default function Workout() {
         <Card className="border-primary bg-primary/10 shadow-[0_0_30px_-10px_hsl(var(--primary))] mb-6 animate-in fade-in zoom-in duration-300">
           <CardContent className="p-6 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Timer className="text-primary animate-pulse" size={32} />
+              <div className="relative">
+                <Timer className="text-primary animate-pulse" size={32} />
+                <Volume2 className="absolute -top-1 -right-1 text-primary/50" size={12} />
+              </div>
               <div>
                 <p className="text-sm font-bold uppercase tracking-widest text-primary">Rest Period</p>
                 <p className="text-3xl font-black font-mono">{formatTime(timeLeft)}</p>
@@ -139,10 +172,10 @@ export default function Workout() {
             </div>
             <div className="flex gap-2">
               <Button size="icon" variant="outline" onClick={() => setTimerActive(false)} className="border-primary/50 text-primary hover:bg-primary/20">
-                <Play size={18} />
+                <Pause size={18} />
               </Button>
-              <Button size="icon" variant="outline" onClick={() => setTimeLeft(prev => prev + 30)} className="border-primary/50 text-primary hover:bg-primary/20 font-bold">
-                +30
+              <Button size="icon" variant="outline" onClick={() => setTimeLeft(prev => prev + 10)} className="border-primary/50 text-primary hover:bg-primary/20 font-bold">
+                +10
               </Button>
             </div>
           </CardContent>
@@ -162,7 +195,7 @@ export default function Workout() {
                 </div>
                 <div>
                   <p className="text-xs uppercase font-bold tracking-widest mb-1">Rest</p>
-                  <p className="text-2xl font-bold text-foreground">{currentEx.restTime}s</p>
+                  <p className="text-2xl font-bold text-foreground">60s</p>
                 </div>
               </div>
             </div>
