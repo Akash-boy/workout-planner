@@ -1,4 +1,5 @@
-import { Switch, Route } from "wouter";
+import { SignIn, SignedIn, SignedOut, UserButton, useUser } from "@clerk/clerk-react";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -14,15 +15,37 @@ import Planner from "@/pages/Planner";
 import Workout from "@/pages/Workout";
 import Progress from "@/pages/Progress";
 
+function ProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType, path: string }) {
+  return (
+    <Route {...rest}>
+      <SignedIn>
+        <Component />
+      </SignedIn>
+      <SignedOut>
+        <Redirect to="/sign-in" />
+      </SignedOut>
+    </Route>
+  );
+}
+
+function SignInPage() {
+  return (
+    <div className="flex items-center justify-center min-h-[calc(100vh-80px)] md:min-h-screen">
+      <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" />
+    </div>
+  );
+}
+
 function Router() {
   return (
     <Layout>
       <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/profile" component={Profile} />
-        <Route path="/planner" component={Planner} />
-        <Route path="/workout" component={Workout} />
-        <Route path="/progress" component={Progress} />
+        <Route path="/sign-in" component={SignInPage} />
+        <ProtectedRoute path="/" component={Home} />
+        <ProtectedRoute path="/profile" component={Profile} />
+        <ProtectedRoute path="/planner" component={Planner} />
+        <ProtectedRoute path="/workout" component={Workout} />
+        <ProtectedRoute path="/progress" component={Progress} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

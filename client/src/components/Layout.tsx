@@ -1,9 +1,11 @@
 import { Link, useLocation } from "wouter";
-import { Home, Calendar, Dumbbell, Activity, User } from "lucide-react";
+import { Home, Calendar, Dumbbell, Activity, User, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UserButton, useUser, SignOutButton } from "@clerk/clerk-react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const { user, isSignedIn } = useUser();
 
   const navItems = [
     { href: "/", icon: Home, label: "Home" },
@@ -15,7 +17,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row pb-20 md:pb-0">
-      <main className="flex-1 overflow-y-auto w-full max-w-md mx-auto md:max-w-none md:pl-20">
+      {/* Header for Desktop/Mobile with User Info */}
+      {isSignedIn && (
+        <header className="fixed top-0 left-0 right-0 h-16 bg-card/80 backdrop-blur-md border-b border-border z-[60] px-6 flex items-center justify-between md:left-20">
+          <div className="flex items-center gap-3">
+            <UserButton afterSignOutUrl="/sign-in" />
+            <div className="hidden sm:block">
+              <p className="text-sm font-bold leading-none">{user.firstName || user.username}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">Status: Active</p>
+            </div>
+          </div>
+          <div className="md:hidden">
+            <SignOutButton>
+              <button className="p-2 text-muted-foreground hover:text-destructive transition-colors">
+                <LogOut size={20} />
+              </button>
+            </SignOutButton>
+          </div>
+        </header>
+      )}
+
+      <main className={cn(
+        "flex-1 overflow-y-auto w-full max-w-md mx-auto md:max-w-none md:pl-20",
+        isSignedIn && "pt-16"
+      )}>
         {children}
       </main>
 
@@ -49,6 +74,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Link>
           );
         })}
+        {isSignedIn && (
+          <div className="hidden md:block mt-auto">
+            <SignOutButton>
+              <button className="flex flex-col items-center justify-center w-14 h-14 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-300">
+                <LogOut size={24} />
+                <span className="text-[10px] font-medium mt-1">Exit</span>
+              </button>
+            </SignOutButton>
+          </div>
+        )}
       </nav>
     </div>
   );
