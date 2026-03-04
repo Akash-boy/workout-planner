@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Timer, Play, Pause, CheckCircle, ArrowRight, X, AlertTriangle, Volume2 } from "lucide-react";
+import { Timer, Play, Pause, CheckCircle, ArrowRight, X, AlertTriangle, Volume2, Star } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 export default function Workout() {
-  const { weeklyPlan, addCompletedWorkout } = useAppContext();
+  const { weeklyPlan, addCompletedWorkout, adjustProtocolIntensity } = useAppContext();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -22,6 +23,9 @@ export default function Workout() {
   const [timerActive, setTimerActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
+
+  const [showRatingDialog, setShowRatingDialog] = useState(false);
+  const [rating, setRating] = useState(0);
 
   const playBeep = () => {
     try {
@@ -89,23 +93,34 @@ export default function Workout() {
     }
   };
 
-  const finishWorkout = () => {
+  const handleFinishWorkout = () => {
+    setShowRatingDialog(true);
+  };
+
+  const submitWorkoutAndRating = () => {
     if (!activePlan || !startTime) return;
     
     const durationSecs = Math.floor((Date.now() - startTime) / 1000);
     const totalSets = Object.values(completedSets).reduce((a, b) => a + b, 0);
     
+    // Add to history
     addCompletedWorkout({
       id: `wo-${Date.now()}`,
       date: new Date().toISOString(),
       planTitle: activePlan.title,
       totalVolume: totalSets,
-      duration: durationSecs
+      duration: durationSecs,
+      rating: rating
     });
+
+    // Adjust AI Protocol
+    adjustProtocolIntensity(rating);
 
     toast({
       title: "Workout Logged",
-      description: `Completed ${totalSets} sets in ${Math.floor(durationSecs / 60)} minutes.`,
+      description: rating >= 4 ? "Adaptive logic: Next week's intensity increased!" : 
+                   rating <= 2 ? "Adaptive logic: Next week's intensity reduced." :
+                   "Protocol complete.",
     });
     
     setLocation("/progress");
@@ -139,7 +154,7 @@ export default function Workout() {
   const progressPercent = (totalSetsCompleted / totalSetsWorkout) * 100;
 
   return (
-    <div className="min-h-screen p-6 pb-24 max-w-xl mx-auto flex flex-col h-screen">
+    <div className="min-h-screen p-6 pb-24 max-xl mx-auto flex flex-col h-screen">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-black uppercase tracking-tight text-primary">
@@ -266,12 +281,51 @@ export default function Workout() {
         ) : (
           <Button 
             className={`flex-[2] font-bold tracking-widest ${totalSetsCompleted === totalSetsWorkout ? 'bg-primary text-primary-foreground shadow-[0_0_20px_-5px_hsl(var(--primary))]' : 'bg-destructive/80'}`}
-            onClick={finishWorkout}
+            onClick={handleFinishWorkout}
           >
             FINISH PROTOCOL <CheckCircle className="ml-2" size={18} />
           </Button>
         )}
       </div>
+
+      <Dialog open={showRatingDialog} onOpenChange={setShowRatingDialog}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight text-center">Protocol Complete</DialogTitle>
+            <DialogDescription className="text-center text-muted-foreground pt-2">
+              Rate the intensity of this session. AI will adjust next week's protocol based on your feedback.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center gap-2 py-8">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <button
+                key={s}
+                onClick={() => setRating(s)}
+                className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all ${
+                  rating >= s ? "border-primary bg-primary/20 text-primary shadow-[0_0_15px_-5px_hsl(var(--primary))]" : "border-border bg-secondary text-muted-foreground hover:border-primary/50"
+                }`}
+              >
+                <Star size={24} fill={rating >= s ? "currentColor" : "none"} />
+              </button>
+            ))}
+          </div>
+          <div className="text-center text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">
+            {rating === 0 ? "Select intensity" : 
+             rating <= 2 ? "Hard (Intensity Reduced next week)" :
+             rating === 3 ? "Perfect (Intensity Maintained)" :
+             "Easy (Intensity Increased next week)"}
+          </div>
+          <DialogFooter>
+            <Button 
+              className="w-full font-bold tracking-widest h-12 bg-primary hover:bg-primary/90 text-primary-foreground" 
+              disabled={rating === 0}
+              onClick={submitWorkoutAndRating}
+            >
+              LOG PROTOCOL & ADJUST MATRIX
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

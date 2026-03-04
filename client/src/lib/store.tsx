@@ -36,6 +36,7 @@ export interface CompletedWorkout {
   planTitle: string;
   totalVolume: number;
   duration: number;
+  rating?: number;
 }
 
 interface AppContextType {
@@ -45,6 +46,7 @@ interface AppContextType {
   setWeeklyPlan: (plan: WorkoutPlan[]) => void;
   completedWorkouts: CompletedWorkout[];
   addCompletedWorkout: (workout: CompletedWorkout) => void;
+  adjustProtocolIntensity: (rating: number) => void;
   streak: number;
   isLoading: boolean;
 }
@@ -113,6 +115,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
     updateFirestore({ completedWorkouts: newHistory });
   };
 
+  const adjustProtocolIntensity = (rating: number) => {
+    if (weeklyPlan.length === 0) return;
+
+    const multiplier = rating >= 4 ? 1.1 : rating <= 2 ? 0.9 : 1.0;
+    if (multiplier === 1.0) return;
+
+    const newPlan = weeklyPlan.map(plan => ({
+      ...plan,
+      exercises: plan.exercises.map(ex => {
+        // Parse reps (e.g., "8-10" or "12")
+        const repsMatch = ex.reps.match(/(\d+)/);
+        const currentReps = repsMatch ? parseInt(repsMatch[0]) : 10;
+        const newRepsVal = Math.max(1, Math.round(currentReps * multiplier));
+        
+        // If it was a range, try to preserve it roughly, otherwise just update the number
+        const newReps = ex.reps.includes('-') 
+          ? `${newRepsVal}-${Math.round(newRepsVal * 1.2)}` 
+          : `${newRepsVal}`;
+
+        return {
+          ...ex,
+          reps: newReps,
+          sets: multiplier > 1 ? ex.sets + (Math.random() > 0.5 ? 1 : 0) : Math.max(1, ex.sets - (Math.random() > 0.5 ? 1 : 0))
+        };
+      })
+    }));
+
+    setWeeklyPlan(newPlan);
+  };
+
   const calculateStreak = () => {
     if (completedWorkouts.length === 0) return 0;
     
@@ -150,6 +182,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setWeeklyPlan,
         completedWorkouts,
         addCompletedWorkout,
+        adjustProtocolIntensity,
         streak: calculateStreak(),
         isLoading
       }}
