@@ -1,4 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { useUser } from "@clerk/clerk-react";
+import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
+import { db } from "./firebase";
 
 type Goal = "muscle" | "strength" | "endurance" | "weight_loss" | "general";
 type Experience = "beginner" | "intermediate" | "advanced";
@@ -17,7 +20,7 @@ export interface Exercise {
   name: string;
   sets: number;
   reps: string;
-  restTime: number; // in seconds
+  restTime: number;
   completedSets?: number;
 }
 
@@ -32,7 +35,7 @@ export interface CompletedWorkout {
   date: string;
   planTitle: string;
   totalVolume: number;
-  duration: number; // in seconds
+  duration: number;
 }
 
 interface AppContextType {
@@ -43,35 +46,72 @@ interface AppContextType {
   completedWorkouts: CompletedWorkout[];
   addCompletedWorkout: (workout: CompletedWorkout) => void;
   streak: number;
+  isLoading: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState<UserProfile | null>(() => {
-    const saved = localStorage.getItem("aura_profile");
-    return saved ? JSON.parse(saved) : null;
-  });
-  const [weeklyPlan, setWeeklyPlan] = useState<WorkoutPlan[]>(() => {
-    const saved = localStorage.getItem("aura_plan");
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [completedWorkouts, setCompletedWorkouts] = useState<CompletedWorkout[]>(() => {
-    const saved = localStorage.getItem("aura_history");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const { user } = useUser();
+  const [profile, setProfileState] = useState<UserProfile | null>(null);
+  const [weeklyPlan, setWeeklyPlanState] = useState<WorkoutPlan[]>([]);
+  const [completedWorkouts, setCompletedWorkoutsState] = useState<CompletedWorkout[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Sync with Firestore when user changes
   useEffect(() => {
-    localStorage.setItem("aura_profile", JSON.stringify(profile));
-  }, [profile]);
+    if (!user) {
+      setProfileState(null);
+      setWeeklyPlanState([]);
+      setCompletedWorkoutsState([]);
+      setIsLoading(false);
+      return;
+    }
 
-  useEffect(() => {
-    localStorage.setItem("aura_plan", JSON.stringify(weeklyPlan));
-  }, [weeklyPlan]);
+    setIsLoading(true);
+    const userDocRef = doc(db, "users", user.id);
 
-  useEffect(() => {
-    localStorage.setItem("aura_history", JSON.stringify(completedWorkouts));
-  }, [completedWorkouts]);
+    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setProfileState(data.profile || null);
+        setWeeklyPlanState(data.weeklyPlan || []);
+        setCompletedWorkoutsState(data.completedWorkouts || []);
+      } else {
+        // Initialize empty doc for new user
+        setDoc(userDocRef, {
+          profile: null,
+          weeklyPlan: [],
+          completedWorkouts: []
+        });
+      }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const updateFirestore = async (updates: any) => {
+    if (!user) return;
+    const userDocRef = doc(db, "users", user.id);
+    await setDoc(userDocRef, updates, { merge: true });
+  };
+
+  const setProfile = (newProfile: UserProfile) => {
+    setProfileState(newProfile);
+    updateFirestore({ profile: newProfile });
+  };
+
+  const setWeeklyPlan = (newPlan: WorkoutPlan[]) => {
+    setWeeklyPlanState(newPlan);
+    updateFirestore({ weeklyPlan: newPlan });
+  };
+
+  const addCompletedWorkout = (workout: CompletedWorkout) => {
+    const newHistory = [workout, ...completedWorkouts];
+    setCompletedWorkoutsState(newHistory);
+    updateFirestore({ completedWorkouts: newHistory });
+  };
 
   const calculateStreak = () => {
     if (completedWorkouts.length === 0) return 0;
@@ -109,9 +149,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         weeklyPlan,
         setWeeklyPlan,
         completedWorkouts,
-        addCompletedWorkout: (workout) =>
-          setCompletedWorkouts((prev) => [workout, ...prev]),
+        addCompletedWorkout,
         streak: calculateStreak(),
+        isLoading
       }}
     >
       {children}
