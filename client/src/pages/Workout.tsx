@@ -7,6 +7,16 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Timer, Play, Pause, CheckCircle, ArrowRight, X, AlertTriangle, Volume2, Star } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { WorkoutSummaryCard } from "@/components/WorkoutSummaryCard";
+
+const MOTIVATIONAL_QUOTES = [
+  "Pain is just data leaving the system.",
+  "Your potential is a limit you haven't reached yet.",
+  "The iron never lies. The matrix never forgets.",
+  "Optimization is a lifelong process. Stay consistent.",
+  "Hardware updated. Software synchronized. Performance peaking.",
+  "Defy the default. Forge your own legacy."
+];
 
 export default function Workout() {
   const { weeklyPlan, addCompletedWorkout, adjustProtocolIntensity } = useAppContext();
@@ -25,7 +35,9 @@ export default function Workout() {
   const [startTime, setStartTime] = useState<number | null>(null);
 
   const [showRatingDialog, setShowRatingDialog] = useState(false);
+  const [showSummaryCard, setShowSummaryCard] = useState(false);
   const [rating, setRating] = useState(0);
+  const [randomQuote, setRandomQuote] = useState("");
 
   const playBeep = () => {
     try {
@@ -115,6 +127,11 @@ export default function Workout() {
 
     // Adjust AI Protocol
     adjustProtocolIntensity(rating);
+    
+    // Prep summary card
+    setRandomQuote(MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)]);
+    setShowRatingDialog(false);
+    setShowSummaryCard(true);
 
     toast({
       title: "Workout Logged",
@@ -122,8 +139,6 @@ export default function Workout() {
                    rating <= 2 ? "Adaptive logic: Next week's intensity reduced." :
                    "Protocol complete.",
     });
-    
-    setLocation("/progress");
   };
 
   const formatTime = (seconds: number) => {
@@ -154,7 +169,7 @@ export default function Workout() {
   const progressPercent = (totalSetsCompleted / totalSetsWorkout) * 100;
 
   return (
-    <div className="min-h-screen p-6 pb-24 max-xl mx-auto flex flex-col h-screen">
+    <div className="min-h-screen p-6 pb-24 max-w-xl mx-auto flex flex-col h-screen">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-black uppercase tracking-tight text-primary">
@@ -326,6 +341,20 @@ export default function Workout() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {showSummaryCard && activePlan && startTime && (
+        <WorkoutSummaryCard 
+          workoutName={activePlan.title}
+          totalSets={Object.values(completedSets).reduce((a, b) => a + b, 0)}
+          duration={formatTime(Math.floor((Date.now() - startTime) / 1000))}
+          exercises={exercises.map(e => e.name)}
+          quote={randomQuote}
+          onClose={() => {
+            setShowSummaryCard(false);
+            setLocation("/progress");
+          }}
+        />
+      )}
     </div>
   );
 }
