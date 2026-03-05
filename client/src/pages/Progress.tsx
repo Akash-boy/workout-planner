@@ -1,10 +1,11 @@
 import { useAppContext } from "@/lib/store";
 import { Card, CardContent } from "@/components/ui/card";
-import { Activity, Calendar, Clock, Database, TrendingUp } from "lucide-react";
+import { Activity, Calendar, Clock, Database, TrendingUp, Inbox } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Spinner } from "@/components/ui/spinner";
 
 export default function Progress() {
-  const { completedWorkouts } = useAppContext();
+  const { completedWorkouts, isLoading } = useAppContext();
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -41,8 +42,19 @@ export default function Progress() {
     return last7Days;
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Spinner className="w-12 h-12 text-primary" />
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground animate-pulse">Syncing Telemetry...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen p-6 pb-24 max-w-2xl mx-auto">
+    <div className="min-h-screen p-6 pb-24 max-w-2xl mx-auto animate-in fade-in duration-500">
       <div className="mb-8">
         <h1 className="text-3xl font-black uppercase tracking-tight flex items-center gap-3">
           <TrendingUp className="text-primary" /> Telemetry
@@ -51,11 +63,15 @@ export default function Progress() {
       </div>
 
       {completedWorkouts.length === 0 ? (
-        <Card className="border-dashed border-2 border-border bg-transparent">
-          <CardContent className="p-12 flex flex-col items-center text-center">
-            <Database className="text-muted-foreground mb-4 opacity-50" size={48} />
-            <h3 className="text-xl font-bold mb-2">No Data Available</h3>
-            <p className="text-muted-foreground max-w-sm">Complete a workout protocol to begin generating telemetry data.</p>
+        <Card className="border-dashed border-2 border-border bg-transparent mt-12">
+          <CardContent className="p-16 flex flex-col items-center text-center">
+            <div className="w-20 h-20 rounded-full bg-secondary/30 flex items-center justify-center mb-6">
+              <Inbox className="text-muted-foreground opacity-50" size={40} />
+            </div>
+            <h3 className="text-2xl font-black uppercase tracking-tight mb-3">No Data Logged</h3>
+            <p className="text-muted-foreground max-w-xs leading-relaxed">
+              Your training history is currently empty. Complete your first protocol to begin generating telemetry data.
+            </p>
           </CardContent>
         </Card>
       ) : (

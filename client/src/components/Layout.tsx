@@ -2,10 +2,13 @@ import { Link, useLocation } from "wouter";
 import { Home, Calendar, Dumbbell, Activity, User, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserButton, useUser, SignOutButton } from "@clerk/clerk-react";
+import { useAppContext } from "@/lib/store";
+import { Spinner } from "@/components/ui/spinner";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { user, isSignedIn } = useUser();
+  const { user, isSignedIn, isLoaded: isClerkLoaded } = useUser();
+  const { isLoading: isStoreLoading } = useAppContext();
 
   const navItems = [
     { href: "/", icon: Home, label: "Home" },
@@ -14,6 +17,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { href: "/progress", icon: Activity, label: "Stats" },
     { href: "/profile", icon: User, label: "Profile" },
   ];
+
+  // Global loading state for authentication or initial data sync
+  if (!isClerkLoaded || (isSignedIn && isStoreLoading)) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+        <Spinner className="w-12 h-12 text-primary" />
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground animate-pulse">
+          Synchronizing Neural Interface...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row pb-20 md:pb-0">
@@ -48,7 +63,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {navItems.map((item) => {
           const isActive = location === item.href;
           const Icon = item.icon;
-          return (
+          return (isSignedIn || item.href === "/sign-in") && (
             <Link key={item.href} href={item.href}>
               <a
                 className={cn(
