@@ -63,7 +63,6 @@ export default function Workout() {
     }
   };
 
-  // Load first available plan for demo purposes
   useEffect(() => {
     if (weeklyPlan.length > 0 && !activePlan) {
       setActivePlan(weeklyPlan[0]);
@@ -72,7 +71,6 @@ export default function Workout() {
     }
   }, [weeklyPlan, activePlan]);
 
-  // Timer logic
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (timerActive && timeLeft > 0) {
@@ -98,8 +96,6 @@ export default function Workout() {
     const currentCompleted = completedSets[exId] || 0;
     if (currentCompleted < maxSets) {
       setCompletedSets(prev => ({ ...prev, [exId]: currentCompleted + 1 }));
-      
-      // Start rest timer (clamped to 60 as per request for consistency, or use plan rest time)
       setTimeLeft(60); 
       setTimerActive(true);
     }
@@ -115,7 +111,6 @@ export default function Workout() {
     const durationSecs = Math.floor((Date.now() - startTime) / 1000);
     const totalSets = Object.values(completedSets).reduce((a, b) => a + b, 0);
     
-    // Add to history
     addCompletedWorkout({
       id: `wo-${Date.now()}`,
       date: new Date().toISOString(),
@@ -125,18 +120,15 @@ export default function Workout() {
       rating: rating
     });
 
-    // Adjust AI Protocol
     adjustProtocolIntensity(rating);
-    
-    // Prep summary card
     setRandomQuote(MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)]);
     setShowRatingDialog(false);
     setShowSummaryCard(true);
 
     toast({
       title: "Workout Logged",
-      description: rating >= 4 ? "Adaptive logic: Next week's intensity increased!" : 
-                   rating <= 2 ? "Adaptive logic: Next week's intensity reduced." :
+      description: rating >= 4 ? "Adaptive logic: Intensity increased!" : 
+                   rating <= 2 ? "Adaptive logic: Intensity reduced." :
                    "Protocol complete.",
     });
   };
@@ -149,12 +141,12 @@ export default function Workout() {
 
   if (!activePlan) {
     return (
-      <div className="min-h-screen p-6 flex flex-col items-center justify-center text-center">
+      <div className="h-full p-6 flex flex-col items-center justify-center text-center">
         <AlertTriangle className="text-muted-foreground mb-4 opacity-50" size={48} />
-        <h2 className="text-2xl font-bold uppercase tracking-tight mb-2">No Active Protocol</h2>
-        <p className="text-muted-foreground mb-6">Generate a training plan in the Planner first.</p>
-        <Button onClick={() => setLocation("/planner")} className="font-bold tracking-widest">
-          GO TO PLANNER
+        <h2 className="text-2xl font-black uppercase tracking-tight mb-2">No Active Protocol</h2>
+        <p className="text-muted-foreground mb-6">Initialize a training plan in the Matrix first.</p>
+        <Button onClick={() => setLocation("/planner")} className="w-full h-14 font-black tracking-widest text-lg">
+          GO TO MATRIX
         </Button>
       </div>
     );
@@ -169,42 +161,42 @@ export default function Workout() {
   const progressPercent = (totalSetsCompleted / totalSetsWorkout) * 100;
 
   return (
-    <div className="min-h-screen p-6 pb-24 max-w-xl mx-auto flex flex-col h-screen">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-black uppercase tracking-tight text-primary">
+    <div className="h-full p-4 flex flex-col overflow-hidden max-w-xl mx-auto">
+      <div className="flex justify-between items-center shrink-0 mb-4">
+        <div className="max-w-[80%]">
+          <h1 className="text-xl font-black uppercase tracking-tight text-primary truncate">
             {activePlan.title}
           </h1>
-          <p className="text-sm text-muted-foreground font-mono">
-            Exercise {currentExerciseIdx + 1} of {exercises.length}
+          <p className="text-[10px] text-muted-foreground font-bold tracking-widest uppercase">
+            Protocol Unit 0{currentExerciseIdx + 1} / 0{exercises.length}
           </p>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="text-muted-foreground">
-          <X size={24} />
+        <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="shrink-0 w-10 h-10">
+          <X size={20} />
         </Button>
       </div>
 
-      <Progress value={progressPercent} className="h-2 mb-8 bg-secondary" />
+      <Progress value={progressPercent} className="h-1 shrink-0 mb-6 bg-secondary" />
 
-      {/* Rest Timer Overlay */}
+      {/* Rest Timer Overlay - Large and Center on mobile */}
       {timerActive && (
-        <Card className="border-primary bg-primary/10 shadow-[0_0_30px_-10px_hsl(var(--primary))] mb-6 animate-in fade-in zoom-in duration-300">
-          <CardContent className="p-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <Card className="shrink-0 border-primary bg-primary/10 shadow-[0_0_30px_-10px_hsl(var(--primary))] mb-6 animate-in fade-in zoom-in duration-300">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
               <div className="relative">
-                <Timer className="text-primary animate-pulse" size={32} />
-                <Volume2 className="absolute -top-1 -right-1 text-primary/50" size={12} />
+                <Timer className="text-primary animate-pulse" size={28} />
+                <Volume2 className="absolute -top-1 -right-1 text-primary/50" size={10} />
               </div>
               <div>
-                <p className="text-sm font-bold uppercase tracking-widest text-primary">Rest Period</p>
-                <p className="text-3xl font-black font-mono">{formatTime(timeLeft)}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-primary leading-none mb-1">Resting</p>
+                <p className="text-2xl font-black font-mono leading-none">{formatTime(timeLeft)}</p>
               </div>
             </div>
             <div className="flex gap-2">
-              <Button size="icon" variant="outline" onClick={() => setTimerActive(false)} className="border-primary/50 text-primary hover:bg-primary/20">
-                <Pause size={18} />
+              <Button size="icon" variant="outline" onClick={() => setTimerActive(false)} className="w-10 h-10 border-primary/50 text-primary">
+                <Pause size={16} />
               </Button>
-              <Button size="icon" variant="outline" onClick={() => setTimeLeft(prev => prev + 10)} className="border-primary/50 text-primary hover:bg-primary/20 font-bold">
+              <Button size="icon" variant="outline" onClick={() => setTimeLeft(prev => prev + 10)} className="w-10 h-10 border-primary/50 text-primary text-xs font-black">
                 +10
               </Button>
             </div>
@@ -212,60 +204,68 @@ export default function Workout() {
         </Card>
       )}
 
-      {/* Current Exercise */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Current Exercise - Optimized for scrolling content */}
+      <div className="flex-1 overflow-y-auto no-scrollbar space-y-6 pb-6">
         {currentEx && (
           <div className="space-y-6 animate-in slide-in-from-right-8 duration-300" key={currentEx.id}>
-            <div className="bg-secondary/30 rounded-2xl p-8 border border-border text-center">
-              <h2 className="text-4xl font-black mb-4">{currentEx.name}</h2>
-              <div className="flex justify-center gap-8 text-muted-foreground font-mono">
-                <div>
-                  <p className="text-xs uppercase font-bold tracking-widest mb-1">Target</p>
-                  <p className="text-2xl font-bold text-foreground">{currentEx.reps}</p>
+            <div className="bg-secondary/20 rounded-2xl p-6 border border-border text-center">
+              <h2 className="text-2xl font-black mb-4 uppercase tracking-tight leading-tight">{currentEx.name}</h2>
+              <div className="flex justify-center gap-6 text-muted-foreground font-bold tracking-tighter">
+                <div className="flex flex-col items-center">
+                  <span className="text-[9px] uppercase tracking-widest text-primary mb-1">Target</span>
+                  <span className="text-xl font-black text-foreground">{currentEx.reps} Reps</span>
                 </div>
-                <div>
-                  <p className="text-xs uppercase font-bold tracking-widest mb-1">Rest</p>
-                  <p className="text-2xl font-bold text-foreground">60s</p>
+                <div className="w-[1px] h-10 bg-border mx-2" />
+                <div className="flex flex-col items-center">
+                  <span className="text-[9px] uppercase tracking-widest text-primary mb-1">Rest</span>
+                  <span className="text-xl font-black text-foreground">60s</span>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Sets</h3>
+            <div className="space-y-2.5">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground px-1">Sets List</h3>
               {Array.from({ length: currentEx.sets }).map((_, i) => {
                 const isCompleted = i < currentExCompletedSets;
                 const isNext = i === currentExCompletedSets;
                 
                 return (
-                  <Card 
+                  <div 
                     key={i} 
-                    className={`transition-all duration-300 border ${
-                      isCompleted ? 'bg-primary/10 border-primary/50' : 
-                      isNext ? 'bg-card border-primary ring-1 ring-primary shadow-[0_0_15px_-5px_hsl(var(--primary))]' : 
-                      'bg-card border-border opacity-60'
-                    }`}
+                    className={cn(
+                      "flex items-center justify-between p-4 rounded-xl border transition-all duration-300",
+                      isCompleted ? 'bg-primary/5 border-primary/20 opacity-80' : 
+                      isNext && !timerActive ? 'bg-card border-primary ring-1 ring-primary shadow-[0_0_15px_-5px_hsl(var(--primary)/0.4)]' : 
+                      'bg-card border-border'
+                    )}
                   >
-                    <CardContent className="p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                          isCompleted ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
-                        }`}>
-                          {isCompleted ? <CheckCircle size={16} /> : i + 1}
-                        </div>
-                        <span className={`font-mono text-lg ${isCompleted ? 'text-primary' : 'text-foreground'}`}>
-                          {currentEx.reps} Reps
-                        </span>
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black",
+                        isCompleted ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
+                      )}>
+                        {isCompleted ? <CheckCircle size={14} /> : i + 1}
                       </div>
-                      <Button 
-                        disabled={isCompleted || (!isNext && !isCompleted) || timerActive}
-                        onClick={() => handleSetComplete(currentEx.id, currentEx.sets, currentEx.restTime)}
-                        variant={isCompleted ? "ghost" : "default"}
-                        className={isNext && !timerActive ? "bg-primary text-primary-foreground hover:bg-primary/90 font-bold" : ""}
-                      >
-                        {isCompleted ? "DONE" : "LOG SET"}
-                      </Button>
-                    </CardContent>
-                  </Card>
+                      <span className={cn(
+                        "text-lg font-black font-mono tracking-tighter",
+                        isCompleted ? 'text-primary' : 'text-foreground'
+                      )}>
+                        {currentEx.reps} REPS
+                      </span>
+                    </div>
+                    <Button 
+                      disabled={isCompleted || (!isNext && !isCompleted) || timerActive}
+                      onClick={() => handleSetComplete(currentEx.id, currentEx.sets, currentEx.restTime)}
+                      variant={isCompleted ? "ghost" : "default"}
+                      size="sm"
+                      className={cn(
+                        "h-10 px-5 font-black tracking-widest",
+                        isNext && !timerActive ? "bg-primary text-primary-foreground" : "bg-secondary/50"
+                      )}
+                    >
+                      {isCompleted ? "DONE" : "LOG"}
+                    </Button>
+                  </div>
                 );
               })}
             </div>
@@ -273,70 +273,70 @@ export default function Workout() {
         )}
       </div>
 
-      {/* Navigation Footer */}
-      <div className="pt-6 border-t border-border mt-auto flex gap-4">
+      {/* Navigation Footer - Fixed/Large for mobile */}
+      <div className="shrink-0 pt-4 flex gap-3 border-t border-border">
         {currentExerciseIdx > 0 && (
           <Button 
             variant="outline" 
-            className="flex-1"
+            className="flex-1 h-14 font-black tracking-widest rounded-2xl border-2"
             onClick={() => setCurrentExerciseIdx(prev => prev - 1)}
           >
-            PREVIOUS
+            BACK
           </Button>
         )}
         
         {currentExerciseIdx < exercises.length - 1 ? (
           <Button 
-            className={`flex-[2] font-bold tracking-widest ${isExFinished ? 'bg-primary text-primary-foreground animate-pulse' : 'bg-secondary text-muted-foreground'}`}
+            className={cn(
+              "flex-[2] h-14 font-black tracking-widest rounded-2xl text-lg",
+              isExFinished ? 'bg-primary text-primary-foreground shadow-[0_0_20px_-5px_hsl(var(--primary)/0.5)]' : 'bg-secondary text-muted-foreground'
+            )}
             onClick={() => setCurrentExerciseIdx(prev => prev + 1)}
-            disabled={!isExFinished && currentExerciseIdx === 0 && currentExCompletedSets === 0}
           >
-            NEXT EXERCISE <ArrowRight className="ml-2" size={18} />
+            NEXT UNIT <ArrowRight className="ml-2" size={20} />
           </Button>
         ) : (
           <Button 
-            className={`flex-[2] font-bold tracking-widest ${totalSetsCompleted === totalSetsWorkout ? 'bg-primary text-primary-foreground shadow-[0_0_20px_-5px_hsl(var(--primary))]' : 'bg-destructive/80'}`}
+            className={cn(
+              "flex-[2] h-14 font-black tracking-widest rounded-2xl text-lg",
+              totalSetsCompleted === totalSetsWorkout ? 'bg-primary text-primary-foreground shadow-[0_0_20px_-5px_hsl(var(--primary))]' : 'bg-destructive/80'
+            )}
             onClick={handleFinishWorkout}
           >
-            FINISH PROTOCOL <CheckCircle className="ml-2" size={18} />
+            TERMINATE <CheckCircle className="ml-2" size={20} />
           </Button>
         )}
       </div>
 
       <Dialog open={showRatingDialog} onOpenChange={setShowRatingDialog}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogContent className="sm:max-w-md bg-card border-border p-6 rounded-[2rem]">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-black uppercase tracking-tight text-center">Protocol Complete</DialogTitle>
-            <DialogDescription className="text-center text-muted-foreground pt-2">
-              Rate the intensity of this session. AI will adjust next week's protocol based on your feedback.
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight text-center">Protocol Log</DialogTitle>
+            <DialogDescription className="text-center text-muted-foreground pt-2 font-bold text-xs uppercase tracking-widest">
+              Rate Neural Stress Level
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-center gap-2 py-8">
+          <div className="flex justify-center gap-3 py-8">
             {[1, 2, 3, 4, 5].map((s) => (
               <button
                 key={s}
                 onClick={() => setRating(s)}
-                className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all ${
-                  rating >= s ? "border-primary bg-primary/20 text-primary shadow-[0_0_15px_-5px_hsl(var(--primary))]" : "border-border bg-secondary text-muted-foreground hover:border-primary/50"
-                }`}
+                className={cn(
+                  "w-12 h-12 rounded-2xl border-2 flex items-center justify-center transition-all active:scale-90",
+                  rating >= s ? "border-primary bg-primary/20 text-primary shadow-[0_0_15px_-5px_hsl(var(--primary))]" : "border-border bg-secondary"
+                )}
               >
                 <Star size={24} fill={rating >= s ? "currentColor" : "none"} />
               </button>
             ))}
           </div>
-          <div className="text-center text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">
-            {rating === 0 ? "Select intensity" : 
-             rating <= 2 ? "Hard (Intensity Reduced next week)" :
-             rating === 3 ? "Perfect (Intensity Maintained)" :
-             "Easy (Intensity Increased next week)"}
-          </div>
           <DialogFooter>
             <Button 
-              className="w-full font-bold tracking-widest h-12 bg-primary hover:bg-primary/90 text-primary-foreground" 
+              className="w-full h-14 font-black tracking-widest bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl text-lg" 
               disabled={rating === 0}
               onClick={submitWorkoutAndRating}
             >
-              LOG PROTOCOL & ADJUST MATRIX
+              FINALIZE PROTOCOL
             </Button>
           </DialogFooter>
         </DialogContent>
