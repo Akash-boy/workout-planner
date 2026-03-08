@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAppContext, Exercise, WorkoutPlan } from "@/lib/store";
