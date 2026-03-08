@@ -31,7 +31,13 @@ function ProtectedRoute({ component: Component, ...rest }: { component: React.Co
 function SignInPage() {
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-80px)] md:min-h-screen">
-      <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" />
+      <SignIn 
+        routing="path" 
+        path="/sign-in" 
+        signUpUrl="/sign-up"
+        afterSignInUrl="/"
+        afterSignUpUrl="/"
+      />
     </div>
   );
 }
