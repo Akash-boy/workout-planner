@@ -1,4 +1,11 @@
-import { SignIn, SignedIn, SignedOut, UserButton, useUser } from "@clerk/clerk-react";
+import {
+  SignIn,
+  SignUp,
+  SignedIn,
+  SignedOut,
+  UserButton,
+  useUser,
+} from "@clerk/clerk-react";
 import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -7,7 +14,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider } from "./lib/store";
 import { Layout } from "./components/Layout";
 import NotFound from "@/pages/not-found";
-
 // Page imports
 import Home from "@/pages/Home";
 import Profile from "@/pages/Profile";
@@ -15,7 +21,13 @@ import Planner from "@/pages/Planner";
 import Workout from "@/pages/Workout";
 import Progress from "@/pages/Progress";
 
-function ProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType, path: string }) {
+function ProtectedRoute({
+  component: Component,
+  ...rest
+}: {
+  component: React.ComponentType;
+  path: string;
+}) {
   return (
     <Route {...rest}>
       <SignedIn>
@@ -31,11 +43,24 @@ function ProtectedRoute({ component: Component, ...rest }: { component: React.Co
 function SignInPage() {
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-80px)] md:min-h-screen">
-      <SignIn 
-        routing="path" 
-        path="/sign-in" 
+      <SignIn
+        routing="path"
+        path="/sign-in"
         signUpUrl="/sign-up"
         afterSignInUrl="/"
+        afterSignUpUrl="/"
+      />
+    </div>
+  );
+}
+
+function SignUpPage() {
+  return (
+    <div className="flex items-center justify-center min-h-[calc(100vh-80px)] md:min-h-screen">
+      <SignUp
+        routing="path"
+        path="/sign-up"
+        signInUrl="/sign-in"
         afterSignUpUrl="/"
       />
     </div>
@@ -47,6 +72,7 @@ function Router() {
     <Layout>
       <Switch>
         <Route path="/sign-in" component={SignInPage} />
+        <Route path="/sign-up" component={SignUpPage} />
         <ProtectedRoute path="/" component={Home} />
         <ProtectedRoute path="/profile" component={Profile} />
         <ProtectedRoute path="/planner" component={Planner} />
