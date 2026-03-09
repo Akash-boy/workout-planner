@@ -1,11 +1,4 @@
-import {
-  SignIn,
-  SignUp,
-  SignedIn,
-  SignedOut,
-  UserButton,
-  useUser,
-} from "@clerk/clerk-react";
+import { SignIn, SignUp, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -34,7 +27,7 @@ function ProtectedRoute({
         <Component />
       </SignedIn>
       <SignedOut>
-        <Redirect to="/sign-in" />
+        <Redirect to="/sign-up" />
       </SignedOut>
     </Route>
   );
@@ -48,7 +41,8 @@ function SignInPage() {
         path="/sign-in"
         signUpUrl="/sign-up"
         afterSignInUrl="/"
-        afterSignUpUrl="/"
+        fallbackRedirectUrl="/"
+        signUpForceRedirectUrl="/"
       />
     </div>
   );
@@ -62,6 +56,8 @@ function SignUpPage() {
         path="/sign-up"
         signInUrl="/sign-in"
         afterSignUpUrl="/"
+        fallbackRedirectUrl="/"
+        signInForceRedirectUrl="/"
       />
     </div>
   );
@@ -73,6 +69,8 @@ function Router() {
       <Switch>
         <Route path="/sign-in" component={SignInPage} />
         <Route path="/sign-up" component={SignUpPage} />
+        <Route path="/sign-in/sso-callback">{() => <Redirect to="/" />}</Route>
+        <Route path="/sign-up/sso-callback">{() => <Redirect to="/" />}</Route>
         <ProtectedRoute path="/" component={Home} />
         <ProtectedRoute path="/profile" component={Profile} />
         <ProtectedRoute path="/planner" component={Planner} />
