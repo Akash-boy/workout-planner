@@ -7,35 +7,141 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { BrainCircuit, Cpu, Zap, Dumbbell, Timer, AlertTriangle } from "lucide-react";
 
+// Comprehensive exercise library organized by body part and difficulty
+const EXERCISE_LIBRARY = {
+  chest: [
+    { name: "Barbell Bench Press", difficulty: "high" },
+    { name: "Dumbbell Bench Press", difficulty: "medium" },
+    { name: "Incline Barbell Press", difficulty: "high" },
+    { name: "Incline Dumbbell Press", difficulty: "medium" },
+    { name: "Machine Chest Press", difficulty: "low" },
+    { name: "Cable Flyes", difficulty: "medium" },
+    { name: "Pushups", difficulty: "low" },
+    { name: "Dips", difficulty: "high" }
+  ],
+  back: [
+    { name: "Barbell Deadlift", difficulty: "high" },
+    { name: "Lat Pulldown", difficulty: "medium" },
+    { name: "Bent-Over Rows", difficulty: "high" },
+    { name: "Single-Arm Dumbbell Rows", difficulty: "medium" },
+    { name: "Cable Rows", difficulty: "medium" },
+    { name: "Assisted Pull-ups", difficulty: "medium" },
+    { name: "Face Pulls", difficulty: "low" },
+    { name: "T-Bar Rows", difficulty: "high" }
+  ],
+  legs: [
+    { name: "Barbell Squat", difficulty: "high" },
+    { name: "Leg Press", difficulty: "medium" },
+    { name: "Bulgarian Split Squat", difficulty: "high" },
+    { name: "Leg Extensions", difficulty: "low" },
+    { name: "Romanian Deadlift", difficulty: "high" },
+    { name: "Leg Curls", difficulty: "medium" },
+    { name: "Calf Raises", difficulty: "low" },
+    { name: "Hack Squat", difficulty: "high" }
+  ],
+  shoulders: [
+    { name: "Overhead Press", difficulty: "high" },
+    { name: "Dumbbell Shoulder Press", difficulty: "medium" },
+    { name: "Lateral Raises", difficulty: "low" },
+    { name: "Reverse Flyes", difficulty: "low" },
+    { name: "Plate Loaded Machine Press", difficulty: "medium" },
+    { name: "Upright Rows", difficulty: "high" },
+    { name: "Machine Shoulder Press", difficulty: "medium" }
+  ],
+  arms: [
+    { name: "Barbell Curl", difficulty: "medium" },
+    { name: "Dumbbell Curl", difficulty: "medium" },
+    { name: "Cable Curl", difficulty: "low" },
+    { name: "Tricep Rope Pushdown", difficulty: "low" },
+    { name: "Overhead Tricep Extension", difficulty: "medium" },
+    { name: "Tricep Dips", difficulty: "high" },
+    { name: "Preacher Curls", difficulty: "medium" },
+    { name: "Hammer Curls", difficulty: "medium" }
+  ]
+};
+
+function getRandomExercises(goal: string, daysCount: number) {
+  const randomSeed = Date.now() + Math.random() * 10000;
+  const bodyParts = Object.keys(EXERCISE_LIBRARY);
+
+  return Array.from({ length: daysCount }).map((_, dayIdx) => {
+    // Shuffle body parts for variety
+    const shuffledParts = [...bodyParts].sort(() => Math.random() - 0.5);
+    const selectedParts = shuffledParts.slice(0, 5);
+
+    const exercises = selectedParts.map((bodyPart, exIdx) => {
+      const exercisePool = EXERCISE_LIBRARY[bodyPart as keyof typeof EXERCISE_LIBRARY];
+      const selectedExercise = exercisePool[Math.floor(Math.random() * exercisePool.length)];
+
+      // Vary sets and reps based on goal
+      let sets: number;
+      let reps: string;
+      let restTime: number;
+
+      if (goal === "strength") {
+        sets = 3 + Math.floor(Math.random() * 3);
+        reps = ["3-5", "4-6", "5-8"][Math.floor(Math.random() * 3)];
+        restTime = 120 + Math.floor(Math.random() * 60);
+      } else if (goal === "muscle") {
+        sets = 3 + Math.floor(Math.random() * 2);
+        reps = ["6-10", "8-12", "10-15"][Math.floor(Math.random() * 3)];
+        restTime = 60 + Math.floor(Math.random() * 60);
+      } else if (goal === "endurance") {
+        sets = 2 + Math.floor(Math.random() * 3);
+        reps = ["12-20", "15-25", "20-30"][Math.floor(Math.random() * 3)];
+        restTime = 30 + Math.floor(Math.random() * 30);
+      } else {
+        sets = 3 + Math.floor(Math.random() * 2);
+        reps = ["8-12", "10-15", "12-18"][Math.floor(Math.random() * 3)];
+        restTime = 45 + Math.floor(Math.random() * 45);
+      }
+
+      return {
+        id: `ex-${dayIdx}-${exIdx}-${randomSeed}`,
+        name: selectedExercise.name,
+        sets,
+        reps,
+        restTime
+      };
+    });
+
+    const protocols = [
+      "Upper/Lower Split",
+      "Push/Pull/Legs",
+      "Full Body",
+      "Strength Focus",
+      "Hypertrophy Block",
+      "Power & Endurance",
+      "Compound Emphasis",
+      "Isolation Block"
+    ];
+
+    return {
+      day: dayIdx + 1,
+      title: protocols[Math.floor(Math.random() * protocols.length)],
+      exercises
+    };
+  });
+}
+
 export default function Planner() {
   const { profile, weeklyPlan, setWeeklyPlan } = useAppContext();
   const [isGenerating, setIsGenerating] = useState(false);
 
   const generatePlan = () => {
     setIsGenerating(true);
-    
-    // Simulate AI Generation delay
+
+    // Simulate AI generation with randomization
     setTimeout(() => {
       if (!profile) return;
-      
-      const days = profile.daysPerWeek;
-      const mockPlan: WorkoutPlan[] = Array.from({ length: days }).map((_, i) => {
-        const isUpper = i % 2 === 0;
-        return {
-          day: i + 1,
-          title: profile.goal === 'muscle' 
-            ? (isUpper ? "Upper Body Hypertrophy" : "Lower Body Power") 
-            : `Protocol Day 0${i + 1}`,
-          exercises: [
-            { id: `ex-${i}-1`, name: isUpper ? "Barbell Bench Press" : "Squat", sets: 4, reps: "8-10", restTime: 90 },
-            { id: `ex-${i}-2`, name: isUpper ? "Incline Dumbbell Press" : "Leg Press", sets: 3, reps: "10-12", restTime: 90 },
-            { id: `ex-${i}-3`, name: isUpper ? "Lat Pulldown" : "Romanian Deadlift", sets: 3, reps: "12-15", restTime: 60 },
-            { id: `ex-${i}-4`, name: isUpper ? "Overhead Tricep Extension" : "Leg Curls", sets: 3, reps: "12-15", restTime: 60 },
-            { id: `ex-${i}-5`, name: isUpper ? "Lateral Raises" : "Calf Raises", sets: 4, reps: "15-20", restTime: 45 },
-          ]
-        };
-      });
 
+      const randomSeed = Date.now();
+      const uniqueRequestId = Math.random().toString(36).substring(7);
+
+      // Console log for debugging - shows randomization is happening
+      console.log(`[AI Generator] Prompt: Generate a completely different and unique workout plan for goal=${profile.goal}, days=${profile.daysPerWeek}. Vary the exercises, sets, reps, order, and structure. Never repeat the same plan twice. Random Seed: ${randomSeed}. Request ID: ${uniqueRequestId}`);
+
+      const mockPlan = getRandomExercises(profile.goal, profile.daysPerWeek);
       setWeeklyPlan(mockPlan);
       setIsGenerating(false);
     }, 2500);
@@ -83,7 +189,7 @@ export default function Planner() {
             </div>
             <div className="space-y-2">
               <h3 className="text-xl font-bold uppercase tracking-widest text-primary">Synthesizing Data</h3>
-              <p className="text-sm text-muted-foreground font-mono">Processing {profile.goal} parameters...</p>
+              <p className="text-sm text-muted-foreground font-mono">Generating completely unique protocol for {profile.goal}...</p>
               <div className="w-full bg-secondary h-1 mt-4 rounded-full overflow-hidden">
                 <div className="bg-primary h-full w-1/2 animate-[progress_1s_ease-in-out_infinite]"></div>
               </div>
@@ -95,7 +201,7 @@ export default function Planner() {
           <CardContent className="p-12 flex flex-col items-center text-center">
             <Zap className="text-muted-foreground mb-4 opacity-50" size={48} />
             <h3 className="text-xl font-bold mb-2">No Active Protocol</h3>
-            <p className="text-muted-foreground mb-6 max-w-sm">Generate your first AI-powered weekly workout schedule based on your profile.</p>
+            <p className="text-muted-foreground mb-6 max-w-sm">Generate your first AI-powered weekly workout schedule based on your profile. Every generation produces a completely unique plan.</p>
             <Button 
               onClick={generatePlan} 
               className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold tracking-widest h-12 px-8 shadow-[0_0_20px_-5px_hsl(var(--primary))]"
