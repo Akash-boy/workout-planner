@@ -57,6 +57,14 @@ export interface BodyMeasurement {
   arms?: number;
 }
 
+export interface OneRepMaxRecord {
+  exerciseName: string;
+  value: number;
+  weight: number;
+  reps: number;
+  date: string;
+}
+
 interface AppContextType {
   profile: UserProfile | null;
   setProfile: (profile: UserProfile) => void;
@@ -69,6 +77,8 @@ interface AppContextType {
   updatePersonalRecord: (record: PersonalRecord) => Promise<boolean>;
   bodyMeasurements: BodyMeasurement[];
   addBodyMeasurement: (measurement: BodyMeasurement) => void;
+  oneRepMaxHistory: OneRepMaxRecord[];
+  addOneRepMax: (record: OneRepMaxRecord) => void;
   streak: number;
   isLoading: boolean;
 }
@@ -82,6 +92,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [completedWorkouts, setCompletedWorkoutsState] = useState<CompletedWorkout[]>([]);
   const [personalRecords, setPersonalRecords] = useState<Record<string, PersonalRecord>>({});
   const [bodyMeasurements, setBodyMeasurementsState] = useState<BodyMeasurement[]>([]);
+  const [oneRepMaxHistory, setOneRepMaxHistoryState] = useState<OneRepMaxRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Sync with Firestore when user changes
@@ -92,6 +103,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setCompletedWorkoutsState([]);
       setPersonalRecords({});
       setBodyMeasurementsState([]);
+      setOneRepMaxHistoryState([]);
       setIsLoading(false);
       return;
     }
@@ -107,6 +119,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setCompletedWorkoutsState(data.completedWorkouts || []);
         setPersonalRecords(data.personalRecords || {});
         setBodyMeasurementsState(data.bodyMeasurements || []);
+        setOneRepMaxHistoryState(data.oneRepMaxHistory || []);
       } else {
         // Initialize empty doc for new user
         setDoc(userDocRef, {
@@ -114,7 +127,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           weeklyPlan: [],
           completedWorkouts: [],
           personalRecords: {},
-          bodyMeasurements: []
+          bodyMeasurements: [],
+          oneRepMaxHistory: []
         });
       }
       setIsLoading(false);
@@ -149,6 +163,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const newMeasurements = [measurement, ...bodyMeasurements];
     setBodyMeasurementsState(newMeasurements);
     updateFirestore({ bodyMeasurements: newMeasurements });
+  };
+
+  const addOneRepMax = (record: OneRepMaxRecord) => {
+    const newHistory = [record, ...oneRepMaxHistory];
+    setOneRepMaxHistoryState(newHistory);
+    updateFirestore({ oneRepMaxHistory: newHistory });
   };
 
   const updatePersonalRecord = async (record: PersonalRecord) => {
@@ -237,6 +257,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updatePersonalRecord,
         bodyMeasurements,
         addBodyMeasurement,
+        oneRepMaxHistory,
+        addOneRepMax,
         streak: calculateStreak(),
         isLoading
       }}

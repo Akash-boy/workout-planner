@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Timer, Play, Pause, CheckCircle, ArrowRight, X, AlertTriangle, Volume2, Star, Trophy, Input } from "lucide-react";
+import { Timer, Play, Pause, CheckCircle, ArrowRight, X, AlertTriangle, Volume2, Star, Trophy, Calculator } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { WorkoutSummaryCard } from "@/components/WorkoutSummaryCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input as ShdnInput } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const MOTIVATIONAL_QUOTES = [
   "Pain is just data leaving the system.",
@@ -21,7 +22,7 @@ const MOTIVATIONAL_QUOTES = [
 ];
 
 export default function Workout() {
-  const { weeklyPlan, addCompletedWorkout, adjustProtocolIntensity, updatePersonalRecord, personalRecords } = useAppContext();
+  const { weeklyPlan, addCompletedWorkout, adjustProtocolIntensity, updatePersonalRecord, personalRecords, addOneRepMax } = useAppContext();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -42,8 +43,12 @@ export default function Workout() {
   const [showRatingDialog, setShowRatingDialog] = useState(false);
   const [showSummaryCard, setShowSummaryCard] = useState(false);
   const [showPRAnimation, setShowPRAnimation] = useState(false);
+  const [show1RMCalc, setShow1RMCalc] = useState(false);
   const [rating, setRating] = useState(0);
   const [randomQuote, setRandomQuote] = useState("");
+
+  const [calcWeight, setCalcWeight] = useState<string>("");
+  const [calcReps, setCalcReps] = useState<string>("");
 
   const playBeep = () => {
     try {
@@ -135,6 +140,28 @@ export default function Workout() {
     }
   };
 
+  const calculate1RM = () => {
+    const w = parseFloat(calcWeight);
+    const r = parseInt(calcReps);
+    if (w > 0 && r > 0 && currentEx) {
+      const oneRM = Math.round(w * (1 + r / 30));
+      addOneRepMax({
+        exerciseName: currentEx.name,
+        value: oneRM,
+        weight: w,
+        reps: r,
+        date: new Date().toISOString()
+      });
+      toast({
+        title: "1RM Synced",
+        description: `Estimated 1RM for ${currentEx.name}: ${oneRM}LB`,
+      });
+      setShow1RMCalc(false);
+      setCalcWeight("");
+      setCalcReps("");
+    }
+  };
+
   const handleFinishWorkout = () => {
     setShowRatingDialog(true);
   };
@@ -219,9 +246,14 @@ export default function Workout() {
             Protocol Unit 0{currentExerciseIdx + 1} / 0{exercises.length}
           </p>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="shrink-0 w-10 h-10">
-          <X size={20} />
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="icon" onClick={() => setShow1RMCalc(true)} className="w-10 h-10 text-primary">
+            <Calculator size={20} />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="shrink-0 w-10 h-10">
+            <X size={20} />
+          </Button>
+        </div>
       </div>
 
       <Progress value={progressPercent} className="h-1 shrink-0 mb-6 bg-secondary" />
@@ -374,6 +406,36 @@ export default function Workout() {
           </Button>
         )}
       </div>
+
+      <Dialog open={show1RMCalc} onOpenChange={setShow1RMCalc}>
+        <DialogContent className="sm:max-w-md bg-card border-border p-6 rounded-[2rem]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight">1RM Estimator</DialogTitle>
+            <DialogDescription className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Epley Formula: Weight × (1 + Reps/30)</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Weight Used</Label>
+              <ShdnInput type="number" value={calcWeight} onChange={e => setCalcWeight(e.target.value)} className="bg-background text-xl font-black" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Reps Performed</Label>
+              <ShdnInput type="number" value={calcReps} onChange={e => setCalcReps(e.target.value)} className="bg-background text-xl font-black" />
+            </div>
+            {parseFloat(calcWeight) > 0 && parseInt(calcReps) > 0 && (
+              <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 text-center">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Estimated 1RM</p>
+                <p className="text-4xl font-black text-primary">{Math.round(parseFloat(calcWeight) * (1 + parseInt(calcReps) / 30))} LB</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button className="w-full h-14 font-black tracking-widest bg-primary text-primary-foreground rounded-2xl" onClick={calculate1RM} disabled={!calcWeight || !calcReps}>
+              SYNC 1RM TO PROFILE
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showRatingDialog} onOpenChange={setShowRatingDialog}>
         <DialogContent className="sm:max-w-md bg-card border-border p-6 rounded-[2rem]">
