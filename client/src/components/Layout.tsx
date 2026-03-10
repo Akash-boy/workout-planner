@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Calendar, Dumbbell, Activity, User, LogOut, Trophy } from "lucide-react";
+import { Home, Calendar, Dumbbell, Activity, User, LogOut, Trophy, Ruler } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserButton, useUser, SignOutButton } from "@clerk/clerk-react";
 import { useAppContext } from "@/lib/store";
@@ -15,8 +15,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { href: "/planner", icon: Calendar, label: "Plan" },
     { href: "/workout", icon: Dumbbell, label: "Train" },
     { href: "/records", icon: Trophy, label: "Hall" },
-    { href: "/progress", icon: Activity, label: "Stats" },
-    { href: "/profile", icon: User, label: "Profile" },
+    { href: "/measurements", icon: Ruler, label: "Stats" },
+    { href: "/progress", icon: Activity, label: "Log" },
+    { href: "/profile", icon: User, label: "Me" },
   ];
 
   if (!isClerkLoaded || (isSignedIn && isStoreLoading)) {

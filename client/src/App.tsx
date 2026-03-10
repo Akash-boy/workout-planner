@@ -14,6 +14,7 @@ import Planner from "@/pages/Planner";
 import Workout from "@/pages/Workout";
 import Progress from "@/pages/Progress";
 import Records from "@/pages/Records";
+import Measurements from "@/pages/Measurements";
 
 function ProtectedRoute({
   component: Component,
@@ -78,6 +79,7 @@ function Router() {
         <ProtectedRoute path="/workout" component={Workout} />
         <ProtectedRoute path="/progress" component={Progress} />
         <ProtectedRoute path="/records" component={Records} />
+        <ProtectedRoute path="/measurements" component={Measurements} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
