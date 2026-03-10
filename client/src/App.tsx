@@ -13,6 +13,7 @@ import Profile from "@/pages/Profile";
 import Planner from "@/pages/Planner";
 import Workout from "@/pages/Workout";
 import Progress from "@/pages/Progress";
+import Records from "@/pages/Records";
 
 function ProtectedRoute({
   component: Component,
@@ -76,6 +77,7 @@ function Router() {
         <ProtectedRoute path="/planner" component={Planner} />
         <ProtectedRoute path="/workout" component={Workout} />
         <ProtectedRoute path="/progress" component={Progress} />
+        <ProtectedRoute path="/records" component={Records} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

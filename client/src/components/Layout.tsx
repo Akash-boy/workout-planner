@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Calendar, Dumbbell, Activity, User, LogOut } from "lucide-react";
+import { Home, Calendar, Dumbbell, Activity, User, LogOut, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserButton, useUser, SignOutButton } from "@clerk/clerk-react";
 import { useAppContext } from "@/lib/store";
@@ -14,6 +14,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { href: "/", icon: Home, label: "Home" },
     { href: "/planner", icon: Calendar, label: "Plan" },
     { href: "/workout", icon: Dumbbell, label: "Train" },
+    { href: "/records", icon: Trophy, label: "Hall" },
     { href: "/progress", icon: Activity, label: "Stats" },
     { href: "/profile", icon: User, label: "Profile" },
   ];
@@ -70,7 +71,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {navItems.map((item) => {
           const isActive = location === item.href;
           const Icon = item.icon;
-          return (
+          return (isSignedIn || item.href === "/sign-in") && (
             <Link key={item.href} href={item.href}>
               <a
                 className={cn(
@@ -99,6 +100,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Link>
           );
         })}
+        {isSignedIn && (
+          <div className="hidden md:block mt-auto">
+            <SignOutButton>
+              <button className="flex flex-col items-center justify-center w-14 h-14 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-300">
+                <LogOut size={24} />
+                <span className="text-[10px] font-medium mt-1">Exit</span>
+              </button>
+            </SignOutButton>
+          </div>
+        )}
       </nav>
     </div>
   );

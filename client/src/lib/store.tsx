@@ -39,6 +39,13 @@ export interface CompletedWorkout {
   rating?: number;
 }
 
+export interface PersonalRecord {
+  exerciseName: string;
+  weight: number;
+  reps: number;
+  date: string;
+}
+
 interface AppContextType {
   profile: UserProfile | null;
   setProfile: (profile: UserProfile) => void;
@@ -47,6 +54,8 @@ interface AppContextType {
   completedWorkouts: CompletedWorkout[];
   addCompletedWorkout: (workout: CompletedWorkout) => void;
   adjustProtocolIntensity: (rating: number) => void;
+  personalRecords: Record<string, PersonalRecord>;
+  updatePersonalRecord: (record: PersonalRecord) => Promise<boolean>;
   streak: number;
   isLoading: boolean;
 }
@@ -58,6 +67,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [profile, setProfileState] = useState<UserProfile | null>(null);
   const [weeklyPlan, setWeeklyPlanState] = useState<WorkoutPlan[]>([]);
   const [completedWorkouts, setCompletedWorkoutsState] = useState<CompletedWorkout[]>([]);
+  const [personalRecords, setPersonalRecords] = useState<Record<string, PersonalRecord>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   // Sync with Firestore when user changes
@@ -66,6 +76,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setProfileState(null);
       setWeeklyPlanState([]);
       setCompletedWorkoutsState([]);
+      setPersonalRecords({});
       setIsLoading(false);
       return;
     }
@@ -79,12 +90,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setProfileState(data.profile || null);
         setWeeklyPlanState(data.weeklyPlan || []);
         setCompletedWorkoutsState(data.completedWorkouts || []);
+        setPersonalRecords(data.personalRecords || {});
       } else {
         // Initialize empty doc for new user
         setDoc(userDocRef, {
           profile: null,
           weeklyPlan: [],
-          completedWorkouts: []
+          completedWorkouts: [],
+          personalRecords: {}
         });
       }
       setIsLoading(false);
@@ -113,6 +126,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const newHistory = [workout, ...completedWorkouts];
     setCompletedWorkoutsState(newHistory);
     updateFirestore({ completedWorkouts: newHistory });
+  };
+
+  const updatePersonalRecord = async (record: PersonalRecord) => {
+    const existing = personalRecords[record.exerciseName];
+    // Simple PR logic: higher weight is better, if same weight then higher reps
+    const isNewPR = !existing || record.weight > existing.weight || (record.weight === existing.weight && record.reps > existing.reps);
+    
+    if (isNewPR) {
+      const newPRs = { ...personalRecords, [record.exerciseName]: record };
+      setPersonalRecords(newPRs);
+      await updateFirestore({ personalRecords: newPRs });
+      return true;
+    }
+    return false;
   };
 
   const adjustProtocolIntensity = (rating: number) => {
@@ -183,6 +210,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         completedWorkouts,
         addCompletedWorkout,
         adjustProtocolIntensity,
+        personalRecords,
+        updatePersonalRecord,
         streak: calculateStreak(),
         isLoading
       }}

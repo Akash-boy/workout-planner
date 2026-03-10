@@ -1,4 +1,3 @@
-import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAppContext, Exercise, WorkoutPlan } from "@/lib/store";
@@ -6,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Timer, Play, Pause, CheckCircle, ArrowRight, X, AlertTriangle, Volume2, Star } from "lucide-react";
+import { Timer, Play, Pause, CheckCircle, ArrowRight, X, AlertTriangle, Volume2, Star, Trophy, Input } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { WorkoutSummaryCard } from "@/components/WorkoutSummaryCard";
+import { motion, AnimatePresence } from "framer-motion";
+import { Input as ShdnInput } from "@/components/ui/input";
 
 const MOTIVATIONAL_QUOTES = [
   "Pain is just data leaving the system.",
@@ -20,7 +21,7 @@ const MOTIVATIONAL_QUOTES = [
 ];
 
 export default function Workout() {
-  const { weeklyPlan, addCompletedWorkout, adjustProtocolIntensity } = useAppContext();
+  const { weeklyPlan, addCompletedWorkout, adjustProtocolIntensity, updatePersonalRecord, personalRecords } = useAppContext();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -31,12 +32,16 @@ export default function Workout() {
   const [currentExerciseIdx, setCurrentExerciseIdx] = useState(0);
   const [completedSets, setCompletedSets] = useState<Record<string, number>>({});
   
+  // Track weights for each exercise
+  const [exerciseWeights, setExerciseWeights] = useState<Record<string, number>>({});
+
   const [timerActive, setTimerActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
 
   const [showRatingDialog, setShowRatingDialog] = useState(false);
   const [showSummaryCard, setShowSummaryCard] = useState(false);
+  const [showPRAnimation, setShowPRAnimation] = useState(false);
   const [rating, setRating] = useState(0);
   const [randomQuote, setRandomQuote] = useState("");
 
@@ -93,10 +98,38 @@ export default function Workout() {
     return () => clearInterval(interval);
   }, [timerActive, timeLeft, toast]);
 
-  const handleSetComplete = (exId: string, maxSets: number, restTime: number) => {
+  const handleSetComplete = async (exId: string, maxSets: number, restTime: number) => {
     const currentCompleted = completedSets[exId] || 0;
-    if (currentCompleted < maxSets) {
+    const currentEx = exercises.find(e => e.id === exId);
+    
+    if (currentCompleted < maxSets && currentEx) {
       setCompletedSets(prev => ({ ...prev, [exId]: currentCompleted + 1 }));
+      
+      // Check for PR
+      const weight = exerciseWeights[exId] || 0;
+      // Extract numeric reps from string like "8-10" -> 10
+      const repsMatch = currentEx.reps.match(/(\d+)/g);
+      const reps = repsMatch ? parseInt(repsMatch[repsMatch.length - 1]) : 10;
+
+      if (weight > 0) {
+        const isNewPR = await updatePersonalRecord({
+          exerciseName: currentEx.name,
+          weight,
+          reps,
+          date: new Date().toISOString()
+        });
+
+        if (isNewPR) {
+          setShowPRAnimation(true);
+          setTimeout(() => setShowPRAnimation(false), 3000);
+          toast({
+            title: "NEW PERSONAL BEST!",
+            description: `${currentEx.name}: ${weight}LB for ${reps} reps`,
+            className: "bg-primary text-primary-foreground border-none"
+          });
+        }
+      }
+
       setTimeLeft(60); 
       setTimerActive(true);
     }
@@ -162,7 +195,21 @@ export default function Workout() {
   const progressPercent = (totalSetsCompleted / totalSetsWorkout) * 100;
 
   return (
-    <div className="h-full p-4 flex flex-col overflow-hidden max-w-xl mx-auto">
+    <div className="h-full p-4 flex flex-col overflow-hidden max-w-xl mx-auto relative">
+      <AnimatePresence>
+        {showPRAnimation && (
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1.2, opacity: 1 }}
+            exit={{ scale: 2, opacity: 0 }}
+            className="absolute inset-0 z-[100] flex flex-col items-center justify-center pointer-events-none"
+          >
+            <Trophy className="text-primary w-32 h-32 drop-shadow-[0_0_20px_rgba(var(--primary),0.8)]" />
+            <h2 className="text-4xl font-black text-primary uppercase tracking-tighter mt-4 drop-shadow-lg">NEW RECORD</h2>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex justify-between items-center shrink-0 mb-4">
         <div className="max-w-[80%]">
           <h1 className="text-xl font-black uppercase tracking-tight text-primary truncate">
@@ -179,7 +226,7 @@ export default function Workout() {
 
       <Progress value={progressPercent} className="h-1 shrink-0 mb-6 bg-secondary" />
 
-      {/* Rest Timer Overlay - Large and Center on mobile */}
+      {/* Rest Timer Overlay */}
       {timerActive && (
         <Card className="shrink-0 border-primary bg-primary/10 shadow-[0_0_30px_-10px_hsl(var(--primary))] mb-6 animate-in fade-in zoom-in duration-300">
           <CardContent className="p-4 flex items-center justify-between">
@@ -205,13 +252,32 @@ export default function Workout() {
         </Card>
       )}
 
-      {/* Current Exercise - Optimized for scrolling content */}
+      {/* Current Exercise */}
       <div className="flex-1 overflow-y-auto no-scrollbar space-y-6 pb-6">
         {currentEx && (
           <div className="space-y-6 animate-in slide-in-from-right-8 duration-300" key={currentEx.id}>
             <div className="bg-secondary/20 rounded-2xl p-6 border border-border text-center">
               <h2 className="text-2xl font-black mb-4 uppercase tracking-tight leading-tight">{currentEx.name}</h2>
-              <div className="flex justify-center gap-6 text-muted-foreground font-bold tracking-tighter">
+              
+              <div className="flex flex-col items-center gap-4 mb-6">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Log Weight (LB)</span>
+                  <ShdnInput 
+                    type="number"
+                    value={exerciseWeights[currentEx.id] || ""}
+                    onChange={(e) => setExerciseWeights({ ...exerciseWeights, [currentEx.id]: parseInt(e.target.value) || 0 })}
+                    className="w-24 bg-background border-border text-center font-black text-xl h-10 rounded-xl focus:border-primary transition-all"
+                    placeholder="0"
+                  />
+                </div>
+                {personalRecords[currentEx.name] && (
+                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary/70">
+                    <Trophy size={12} /> Best: {personalRecords[currentEx.name].weight}LB x {personalRecords[currentEx.name].reps}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-center gap-6 text-muted-foreground font-bold tracking-tighter pt-4 border-t border-border/50">
                 <div className="flex flex-col items-center">
                   <span className="text-[9px] uppercase tracking-widest text-primary mb-1">Target</span>
                   <span className="text-xl font-black text-foreground">{currentEx.reps} Reps</span>
@@ -274,7 +340,7 @@ export default function Workout() {
         )}
       </div>
 
-      {/* Navigation Footer - Fixed/Large for mobile */}
+      {/* Navigation Footer */}
       <div className="shrink-0 pt-4 flex gap-3 border-t border-border">
         {currentExerciseIdx > 0 && (
           <Button 
